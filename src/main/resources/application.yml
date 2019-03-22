@@ -1,9 +1,11 @@
 spring:
   datasource:
-    url: '@datasource.url@'
-    username: '@datasource.username@'
-    driver-class-name: '@datasource.driver@'
-    password: '@datasource.password@'
+    url: 'jdbc:mysql://localhost:3306/db_example'
+    username: 'root'
+    driver-class-name: 'com.mysql.jdbc.Driver'
+    password: '123456'
     tomcat:
       max-active: 1000
       max-idle: 1000
+server:
+  port: 8080
