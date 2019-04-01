@@ -79,7 +79,7 @@
 	</build>
 	<profiles>
 		<!-- sqlserver数据库 -->
-		<profile>
+		<!--<profile>
 			<id>sqlserver@local</id>
 			<properties>
 				<showsql>true</showsql>
@@ -91,17 +91,17 @@
 				<datasource.platform>org.hibernate.dialect.SQLServer2012Dialect</datasource.platform>
 				<server.port>8080</server.port>
 			</properties>
-		</profile>
+		</profile>-->
 		<profile>
 			<id>mysql@local</id>
 			<properties>
 				<showsql>true</showsql>
-				<datasource.url>jdbc:mysql://127.0.0.1:11001/activiti?createDatabaseIfNotExist=true&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true</datasource.url>
+				<datasource.url>jdbc:mysql://localhost:3306/db_example?createDatabaseIfNotExist=true&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true</datasource.url>
 				<datasource.driver>com.mysql.jdbc.Driver</datasource.driver>
 				<datasource.username>root</datasource.username>
-				<datasource.password>mysql</datasource.password>
+				<datasource.password>123456</datasource.password>
 				<datasource.platform>org.hibernate.dialect.MySQL57Dialect</datasource.platform>
-				<server.port>11001</server.port>
+				<!--<server.port>11001</server.port>-->
 			</properties>
 		</profile>
 	</profiles>
