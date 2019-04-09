@@ -6,7 +6,8 @@ import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
-import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricProcessInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.impl.identity.Authentication;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -35,7 +36,7 @@ public class TestBagOrderCheck {
 
     private String processId = "187505";
     //二号成本审核key=>(类型：主键：状态)
-    private String businessKey = "SQ:100860001:1";
+    private String businessKey = "TEST:100860001:2";
 
     private Integer taskId;
 
@@ -46,8 +47,9 @@ public class TestBagOrderCheck {
         //启动流程
         // 设置User Task1受理人变量
         Map<String, Object> variable = new HashMap<>();
-        String [] candidateUsers={"Tec.A","Tec.B","Tec.C","Tec.D"};
+        String[] candidateUsers = {"Tec.A", "Tec.B", "Tec.C", "Tec.D"};
         List<String> stringList = Arrays.asList(candidateUsers);
+
         variable.put("technology", stringList);
         //注：businessKey=>报价单主键:修改码
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("testBagOrderCheck", businessKey, variable);
@@ -60,6 +62,7 @@ public class TestBagOrderCheck {
         //任务逻辑，技术部门
         List<Task> taskList = processEngine.getTaskService().createTaskQuery()
                 //.processInstanceId(processId)
+                //.taskCandidateUser(String.valueOf(1L))
                 .processInstanceBusinessKey(businessKey)
                 .list();
         System.out.println("任务查询成功，任务列表：" + taskList);
@@ -72,20 +75,19 @@ public class TestBagOrderCheck {
         // 设置User Task1受理人变量
         Map<String, Object> variableB = new HashMap<>();
         //业务
-        String [] candidateUsersSale={"Sal.A","Sal.B","Sal.C","Sal.D"};
+        String[] candidateUsersSale = {"Sal.A", "Sal.B", "Sal.C", "Sal.D"};
         variableB.put("sale", Arrays.asList(candidateUsersSale));
         //财务
-        String [] candidateUsersAccount={"Acc.A","Acc.B","Acc.C","Acc.D"};
+        String[] candidateUsersAccount = {"Acc.A", "Acc.B", "Acc.C", "Acc.D"};
         variableB.put("account", Arrays.asList(candidateUsersAccount));
         //生产
-        String [] candidateUsersProduct={"Pro.A","Pro.B","Pro.C","Pro.D"};
+        String[] candidateUsersProduct = {"Pro.A", "Pro.B", "Pro.C", "Pro.D"};
         variableB.put("product", Arrays.asList(candidateUsersProduct));
 
         Task task = taskList.get(0);
-        taskService.complete(taskList.get(0).getId(),variableB);
+        taskService.complete(taskList.get(0).getId(), variableB);
         System.out.println("[TaskA]任务完成，任务传给：并行网关");
     }
-
 
 
     @Test
@@ -107,7 +109,7 @@ public class TestBagOrderCheck {
         // 由于流程用户上下文对象是线程独立的，所以要在需要的位置设置，要保证设置和获取操作在同一个线程中
         Authentication.setAuthenticatedUserId("Sal.A");//批注人的名称  一定要写，不然查看的时候不知道人物信息
         // 添加批注信息
-        taskService.addComment(taskList.get(0).getId(), null, "1:"+"B1完成批注信息");//comment为批注内容*/
+        taskService.addComment(taskList.get(0).getId(), null, "1:" + "B1完成批注信息");//comment为批注内容*/
 
         //任务完成，向下执行
         taskService.complete(taskList.get(0).getId());
@@ -133,7 +135,7 @@ public class TestBagOrderCheck {
         // 由于流程用户上下文对象是线程独立的，所以要在需要的位置设置，要保证设置和获取操作在同一个线程中
         Authentication.setAuthenticatedUserId("Acc.A");//批注人的名称  一定要写，不然查看的时候不知道人物信息
         // 添加批注信息
-        taskService.addComment(taskList.get(0).getId(), null, "2:"+"B2完成批注信息");//comment为批注内容*/
+        taskService.addComment(taskList.get(0).getId(), null, "2:" + "B2完成批注信息");//comment为批注内容*/
 
         //任务完成，向下执行
         taskService.complete(taskList.get(0).getId());
@@ -159,15 +161,12 @@ public class TestBagOrderCheck {
         // 由于流程用户上下文对象是线程独立的，所以要在需要的位置设置，要保证设置和获取操作在同一个线程中
         Authentication.setAuthenticatedUserId("Pro.A");//批注人的名称  一定要写，不然查看的时候不知道人物信息
         // 添加批注信息
-        taskService.addComment(taskList.get(0).getId(), null, "3:"+"B3完成批注信息");//comment为批注内容*/
+        taskService.addComment(taskList.get(0).getId(), null, "3:" + "B3完成批注信息");//comment为批注内容*/
 
         //任务完成，向下执行
         taskService.complete(taskList.get(0).getId());
         System.out.println("[taskB3]任务完成");
     }
-
-
-
 
 
     /**
@@ -208,12 +207,27 @@ public class TestBagOrderCheck {
         System.out.println(list.size());*/
 
         //1) 获取流程实例的ID
+        HistoricProcessInstance historicProcessInstance = processEngine.getHistoryService().createHistoricProcessInstanceQuery()
+                .processInstanceBusinessKey(businessKey)
+                .singleResult();
         ProcessInstance pi = runtimeService.createProcessInstanceQuery()
                 .processInstanceBusinessKey(businessKey)
-                //.processInstanceId(processId)
+//                .processInstanceId(processId)
                 .singleResult();
+        /**方案一*/
+        List<HistoricTaskInstance> historicTaskInstanceList = processEngine.getHistoryService().createHistoricTaskInstanceQuery()
+                .processInstanceBusinessKey(businessKey)
+                .finished()
+                .list();
+        for (HistoricTaskInstance his:historicTaskInstanceList) {
+            List<Comment> comments = taskService.getTaskComments(his.getId());
+            if (comments != null && comments.size() > 0) {
+                historyCommnets.addAll(comments);
+            }
+        }
+        /**方案二.START*/
         //2）通过流程实例查询所有的(用户任务类型)历史活动
-        List<HistoricActivityInstance> hais = processEngine.getHistoryService().createHistoricActivityInstanceQuery()
+        /*List<HistoricActivityInstance> hais = processEngine.getHistoryService().createHistoricActivityInstanceQuery()
                 .processInstanceId(pi.getId())
                 //.processDefinitionId("test")
                 //.activityId("test")
@@ -227,7 +241,8 @@ public class TestBagOrderCheck {
             if (comments != null && comments.size() > 0) {
                 historyCommnets.addAll(comments);
             }
-        }
+        }*/
+        /**方案二.END*/
         //5）返回
         for (Comment comment : historyCommnets) {
             System.out.println(comment.getUserId() + ":" + comment.getFullMessage());
@@ -236,21 +251,32 @@ public class TestBagOrderCheck {
     }
 
 
-    public void taskQuery(){
+    @Test
+    public void taskQuery() {
         TaskQuery taskQuery = taskService.createTaskQuery().taskId("102510");
         System.out.println(taskQuery);
+    }
+
+    @Test
+    public void processInstanceQuery() {
+        //1) 获取流程实例的ID
+        ProcessInstance pi = runtimeService.createProcessInstanceQuery()
+                .processInstanceBusinessKey(businessKey)
+//                .processInstanceId(processId)
+                .singleResult();
+        System.out.println("流程查询："+pi.getId());
     }
 
     /**
      * 设置流程变量数据
      */
     @Test
-    public void setVariableValues(){
+    public void setVariableValues() {
         RuntimeService service = processEngine.getRuntimeService();
         List<ProcessInstance> processInstanceList = service.createProcessInstanceQuery()
                 .processInstanceBusinessKey(businessKey)
                 .list();
-        service.setVariable( processId, "checkStatus",3);
+        service.setVariable(processId, "checkStatus", 3);
         Map<String, Object> objectMap = processInstanceList.get(0).getProcessVariables();
         System.out.println(JSONObject.toJSON(objectMap));
     }
@@ -259,10 +285,10 @@ public class TestBagOrderCheck {
      * 获取流程变量数据
      */
     @Test
-    public void getVariableValues(){
-        TaskService taskService=processEngine.getTaskService(); // 任务Service
-        Integer count=(Integer) taskService.getVariable(businessKey, "checkStatus");
+    public void getVariableValues() {
+        TaskService taskService = processEngine.getTaskService(); // 任务Service
+        Integer count = (Integer) taskService.getVariable(businessKey, "checkStatus");
 
-        System.out.println("数量："+count);
+        System.out.println("数量：" + count);
     }
 }
